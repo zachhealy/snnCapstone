@@ -94,46 +94,39 @@ same = False
 for step in range(num_steps):
     for i in range(len(data)):
         for j in range(len(data[i])):
+            hasPair = False
             #upper pair
             if i > 0:
-                if data[i][j] == 1 and data[i-1][j] == 1:
-                    spk[i], mem[i] = leaky_integrate_and_fire(mem[i], x[step], w=w, beta=beta)
-                    mem_rec.append(mem[i])
-                    spk_rec.append(spk[i])
-                else:
-                    spk[i], mem[i] = leaky_integrate_and_fire(mem[i], x[step], w=w2, beta=beta)
-                    mem_rec.append(mem[i])
-                    spk_rec.append(spk[i])
+                if data[i][j] == 1 and data[i-1][j] == 1 and hasPair == False:
+                    hasPair = True
+
             #lower pair
             if i < len(data)-1:
-                if data[i][j] == 1 and data[i+1][j] == 1:
-                    spk[i], mem[i] = leaky_integrate_and_fire(mem[i], x[step], w=w, beta=beta)
-                    mem_rec.append(mem[i])
-                    spk_rec.append(spk[i])
-                else:
-                    spk[i], mem[i] = leaky_integrate_and_fire(mem[i], x[step], w=w2, beta=beta)
-                    mem_rec.append(mem[i])
-                    spk_rec.append(spk[i])
+                if data[i][j] == 1 and data[i+1][j] == 1 and hasPair == False:
+                    hasPair = True
+
             #left pair
             if j > 0:
-                if data[i][j] == 1 and data[i][j-1] == 1:
-                    spk[i], mem[i] = leaky_integrate_and_fire(mem[i], x[step], w=w, beta=beta)
-                    mem_rec.append(mem[i])
-                    spk_rec.append(spk[i])
-                else:
-                    spk[i], mem[i] = leaky_integrate_and_fire(mem[i], x[step], w=w2, beta=beta)
-                    mem_rec.append(mem[i])
-                    spk_rec.append(spk[i])
+                if data[i][j] == 1 and data[i][j-1] == 1 and hasPair == False:
+                    hasPair = True
+
             #right pair
             if j < len(data[i])-1:
-                if data[i][j] == 1 and data[i][j+1] == 1:
-                    spk[i], mem[i] = leaky_integrate_and_fire(mem[i], x[step], w=w, beta=beta)
-                    mem_rec.append(mem[i])
-                    spk_rec.append(spk[i])
-                else:
-                    spk[i], mem[i] = leaky_integrate_and_fire(mem[i], x[step], w=w2, beta=beta)
-                    mem_rec.append(mem[i])
-                    spk_rec.append(spk[i])
+                if data[i][j] == 1 and data[i][j+1] == 1 and hasPair == False:
+                    hasPair = True
+
+            #Neuron Generation
+            #Adjacent Pair found so Weight is normal
+            if(hasPair == True):
+                spk[i], mem[i] = leaky_integrate_and_fire(mem[i], x[step], w=w, beta=beta)
+                mem_rec.append(mem[i])
+                spk_rec.append(spk[i])
+
+            #Adjacent Pair not Found so Weight is set to 0
+            else:
+                spk[i], mem[i] = leaky_integrate_and_fire(mem[i], x[step], w=w2, beta=beta)
+                mem_rec.append(mem[i])
+                spk_rec.append(spk[i])
 
 memString = ""
 spkString = ""    
