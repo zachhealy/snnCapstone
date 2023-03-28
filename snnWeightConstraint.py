@@ -76,13 +76,13 @@ tau = torch.tensor(5e-3)
 beta = torch.exp(-delta_t/tau)
 
 # Neuron Constraint Loop and Generation
-num_steps = 100
+num_steps = 200
 data = np.random.choice([0, 1], size=(10, 10), p=[.1, .9])
-mem = torch.rand((num_steps, 10, 10), dtype=dtype) * 0.5
+mem = torch.rand((10, 10), dtype=dtype) * 0.5
 
 w = 0.5
 w2 = 0
-x = torch.cat((torch.zeros(5), torch.ones(95)*0.5), 0)
+x = torch.cat((torch.zeros(5), torch.ones(num_steps - 5)*0.5), 0)
 beta = 0.819
 spk = mem 
 mem_rec = []
