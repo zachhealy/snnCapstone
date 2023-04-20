@@ -2,6 +2,9 @@
 import snntorch as snn
 from snntorch import spikeplot as splt
 from snntorch import spikegen
+from snntorch import utils
+
+import tonic
 
 import torch
 dtype = torch.float
@@ -12,62 +15,10 @@ import matplotlib.cm as cm
 
 import numpy as np
 
-#@title Plotting Settings
-def plot_cur_mem_spk(cur, mem, spk, thr_line=False, vline=False, title=False, ylim_max1=1.25, ylim_max2=1.25):
-  # Generate Plots
-  fig, ax = plt.subplots(3, figsize=(8,6), sharex=True, 
-                        gridspec_kw = {'height_ratios': [1, 1, 0.4]})
-
-  # Plot input current
-  ax[0].plot(cur, c="tab:orange")
-  ax[0].set_ylim([0, ylim_max1])
-  ax[0].set_xlim([0, 200])
-  ax[0].set_ylabel("Input Current ($I_{in}$)")
-  if title:
-    ax[0].set_title(title)
-
-  # Plot membrane potential
-  ax[1].plot(mem)
-  ax[1].set_ylim([0, ylim_max2]) 
-  ax[1].set_ylabel("Membrane Potential ($U_{mem}$)")
-  if thr_line:
-    ax[1].axhline(y=thr_line, alpha=0.25, linestyle="dashed", c="black", linewidth=2)
-  plt.xlabel("Time step")
-
-  # Plot output spike using spikeplot
-  splt.raster(spk, ax[2], s=400, c="black", marker="|")
-  if vline:
-    ax[2].axvline(x=vline, ymin=0, ymax=6.75, alpha = 0.15, linestyle="dashed", c="black", linewidth=2, zorder=0, clip_on=False)
-  plt.ylabel("Output spikes")
-  plt.yticks([]) 
-
-  plt.show()
-
-def plot_snn_spikes(spk_in, spk1_rec, spk2_rec, title):
-  # Generate Plots
-  fig, ax = plt.subplots(3, figsize=(8,7), sharex=True, 
-                        gridspec_kw = {'height_ratios': [1, 1, 0.4]})
-
-  # Plot input spikes
-  splt.raster(spk_in[:,0], ax[0], s=0.03, c="black")
-  ax[0].set_ylabel("Input Spikes")
-  ax[0].set_title(title)
-
-  # Plot hidden layer spikes
-  splt.raster(spk1_rec.reshape(num_steps, -1), ax[1], s = 0.05, c="black")
-  ax[1].set_ylabel("Hidden Layer")
-
-  # Plot output spikes
-  splt.raster(spk2_rec.reshape(num_steps, -1), ax[2], c="black", marker="|")
-  ax[2].set_ylabel("Output Spikes")
-  ax[2].set_ylim([0, 10])
-
-  plt.show()
-
 # Neuron Creation Function
 def leaky_integrate_and_fire(mem, x, w, beta, threshold=1):
   spk = (mem > threshold) # if membrane exceeds threshold, spk=1, else, 0
-  mem = beta * mem + w*x - spk*threshold
+  mem = beta * mem + x*w - spk*threshold
   return spk, mem
 
 # set neuronal parameters
@@ -82,7 +33,7 @@ mem = torch.rand((10, 10), dtype=dtype) * 0.5
 
 w = 0.5
 w2 = 0
-x = torch.cat((torch.zeros(5), torch.ones(num_steps - 5)*0.5), 0)
+x = torch.cat((torch.zeros(5), torch.ones(num_steps - 5) * 0.5), 0)
 beta = 0.819
 spk = mem 
 mem_rec = []
@@ -96,23 +47,23 @@ for step in range(num_steps):
         for j in range(len(data[i])):
             hasPair = False
             #upper pair
-            if i > 0:
-                if data[i][j] == 1 and data[i-1][j] == 1 and hasPair == False:
+            if i > 0 and hasPair == False:
+                if data[i][j] == 1 and data[i-1][j] == 1:
                     hasPair = True
 
             #lower pair
-            if i < len(data)-1:
-                if data[i][j] == 1 and data[i+1][j] == 1 and hasPair == False:
+            if i < len(data)-1 and hasPair == False:
+                if data[i][j] == 1 and data[i+1][j] == 1:
                     hasPair = True
 
             #left pair
-            if j > 0:
-                if data[i][j] == 1 and data[i][j-1] == 1 and hasPair == False:
+            if j > 0 and hasPair == False:
+                if data[i][j] == 1 and data[i][j-1] == 1:
                     hasPair = True
 
             #right pair
-            if j < len(data[i])-1:
-                if data[i][j] == 1 and data[i][j+1] == 1 and hasPair == False:
+            if j < len(data[i])-1 and hasPair == False:
+                if data[i][j] == 1 and data[i][j+1] == 1:
                     hasPair = True
 
             #Neuron Generation
@@ -128,8 +79,12 @@ for step in range(num_steps):
                 mem_rec.append(mem[i])
                 spk_rec.append(spk[i])
 
+mem_rec = torch.stack(mem_rec)
+spk_rec = torch.stack(spk_rec)
+
 memString = ""
 spkString = ""    
+
 
 for i in mem_rec:
     memString += str(i) + ", "  
@@ -142,4 +97,13 @@ print("")
 print("------------------------------------------------------------------------------------------------------------")
 print("")
 print(spkString)
+
+# fig, ax= plt.subplots()
+
+# #  s: size of scatter points; c: color of scatter points
+# ax.imshow(mem_rec, cmap="tab20c", interpolation="nearest", aspect="auto")
+# plt.title("Input Layer")
+# plt.xlabel("Time step")
+# plt.ylabel("Neuron Number")
+# plt.show()
 
