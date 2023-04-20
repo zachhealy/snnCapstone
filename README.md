@@ -1,7 +1,7 @@
 # snnCapstone
 
 A repo for our Senior Capstone project working with snnTorch.
- - Project Client: Dr. Roberto Lowe
+ - Project Client: Dr. Robert Lowe
 
 # Roadmap
 
