@@ -1,4 +1,5 @@
 #Imports
+import math
 import snntorch as snn
 from snntorch import spikeplot as splt
 from snntorch import spikegen
@@ -74,6 +75,42 @@ def plot_snn_spikes(spk_in, spk1_rec, spk2_rec, title):
 batch_size = 128
 data_path='/data/mnist'
 
+# grid_pair = np.random.choice([0, 1], size=(28, 28), p=[.1, .9])
+caley_data = np.load("D:\outfile.npy")
+grid_pair = np.empty(caley_data.shape, dtype=int)
+
+grid_rows, grid_cols = grid_pair.shape
+
+for i in range(grid_cols):
+    for j in range(grid_rows):
+        hasPair = False
+        #upper pair
+        if i > 0 and hasPair == False:
+            if caley_data[i][j] > 0 and caley_data[i-1][j] > 0:
+                hasPair = True
+                grid_pair[i][j] = 1
+        #lower pair
+        if i < len(caley_data)-1 and hasPair == False:
+            if caley_data[i][j] > 0 and caley_data[i+1][j] > 0:
+                hasPair = True
+                grid_pair[i][j] = 1
+
+        #left pair
+        if j > 0 and hasPair == False:
+            if caley_data[i][j] > 0 and caley_data[i][j-1] > 0:
+                hasPair = True
+                grid_pair[i][j] = 1
+
+        #right pair
+        if j < len(caley_data[i])-1 and hasPair == False:
+            if caley_data[i][j] > 0 and caley_data[i][j+1] > 0:
+                hasPair = True
+                grid_pair[i][j] = 1
+
+grid_pair_flat = grid_pair.flatten()
+#grid_pair_flat_array = np.reshape(grid_pair_flat, (math.floor(grid_pair_flat.size / batch_size) + 1 , batch_size))
+#grid_pair_flat_array = [[None]*batch_size for i in range((grid_pair_flat.size % batch_size) + 1)]
+
 dtype = torch.float
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
@@ -87,14 +124,13 @@ transform = transforms.Compose([
 mnist_train = datasets.MNIST(data_path, train=True, download=True, transform=transform)
 mnist_test = datasets.MNIST(data_path, train=False, download=True, transform=transform)
 
+print(mnist_train)
+
 # Create DataLoaders
 train_loader = DataLoader(mnist_train, batch_size=batch_size, shuffle=True, drop_last=True)
 test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=True)
 
 num_steps = 25
-# grid_pair = np.random.choice([0, 1], size=(28, 28), p=[.1, .9])
-grid_pair = np.load("D:\outfile.npy")
-
 num_inputs = 28*28
 num_hidden = 1000
 num_outputs = 10
@@ -123,12 +159,16 @@ class Net(nn.Module):
         mem2_rec = []
 
         for step in range(num_steps):
-          cur1 = self.fc1(x)
-          spk1, mem1 = self.lif1(cur1, mem1)
-          cur2 = self.fc2(spk1)
-          spk2, mem2 = self.lif2(cur2, mem2)
-          spk2_rec.append(spk2)
-          mem2_rec.append(mem2)
+          for i in range(grid_pair_checker.size):
+            if(grid_pair_checker[i] != 1):
+               cur1 = self.fc1(x * 0)
+            else:
+               cur1 = self.fc1(x)
+            spk1, mem1 = self.lif1(cur1, mem1)
+            cur2 = self.fc2(spk1)
+            spk2, mem2 = self.lif2(cur2, mem2)
+            spk2_rec.append(spk2)
+            mem2_rec.append(mem2)
            
         return torch.stack(spk2_rec, dim=0), torch.stack(mem2_rec, dim=0)
 
@@ -161,6 +201,7 @@ def train_printer(
     print("\n")
 
 loss = nn.CrossEntropyLoss()
+# w = torch.weight_norm(nn.Module(0, 0), name = 'weight')
 
 optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas=(0.9, 0.999))
 
@@ -173,6 +214,8 @@ counter = 0
 for epoch in range(num_epochs):
     iter_counter = 0
     train_batch = iter(train_loader)
+    increment = batch_size*iter_counter
+    grid_pair_checker = grid_pair_flat[increment:increment+batch_size]
 
     # Minibatch training loop
     for data, targets in train_batch:
@@ -189,15 +232,9 @@ for epoch in range(num_epochs):
             loss_val += loss(mem_rec[step], targets)
 
         # Gradient calculation + weight update
-        if():
-          optimizer.zero_grad()
-          loss_val.backward()
-          optimizer.step()
-
-        else:
-          optimizer.zero_grad()
-          loss_val.backward()
-          optimizer.step() * 0 
+        optimizer.zero_grad()
+        loss_val.backward()
+        optimizer.step()
 
         # Store loss history for future plotting
         loss_hist.append(loss_val.item())
